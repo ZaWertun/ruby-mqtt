@@ -1,3 +1,5 @@
+require_relative 'queue_with_timeout'
+
 autoload :OpenSSL, 'openssl'
 autoload :URI, 'uri'
 
@@ -162,7 +164,7 @@ module MQTT
       @last_ping_request = Time.now
       @last_ping_response = Time.now
       @socket = nil
-      @read_queue = Queue.new
+      @read_queue = QueueWithTimeout.new
       @pubacks = {}
       @read_thread = nil
       @write_semaphore = Mutex.new
@@ -369,7 +371,7 @@ module MQTT
     #     # Do stuff here
     #   end
     #
-    def get(topic = nil, options = {})
+    def get(topic = nil, timeout = nil, options = {})
       if block_given?
         get_packet(topic) do |packet|
           yield(packet.topic, packet.payload) unless packet.retain && options[:omit_retained]
@@ -377,7 +379,7 @@ module MQTT
       else
         loop do
           # Wait for one packet to be available
-          packet = get_packet(topic)
+          packet = get_packet(topic, timeout)
           return packet.topic, packet.payload unless packet.retain && options[:omit_retained]
         end
       end
@@ -396,20 +398,20 @@ module MQTT
     #     puts packet.topic
     #   end
     #
-    def get_packet(topic = nil)
+    def get_packet(topic = nil, timeout = nil)
       # Subscribe to a topic, if an argument is given
       subscribe(topic) unless topic.nil?
 
       if block_given?
         # Loop forever!
         loop do
-          packet = @read_queue.pop
+          packet = @read_queue.pop_with_timeout(timeout)
           yield(packet)
           puback_packet(packet) if packet.qos > 0
         end
       else
         # Wait for one packet to be available
-        packet = @read_queue.pop
+        packet = @read_queue.pop_with_timeout(timeout)
         puback_packet(packet) if packet.qos > 0
         return packet
       end

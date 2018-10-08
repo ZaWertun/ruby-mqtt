@@ -713,7 +713,7 @@ describe MQTT::Client do
     it "should successfully receive a valid PUBLISH packet, but not return it, if omit_retained is set" do
       inject_packet(:topic => 'topic1', :payload => 'payload1', :qos => 1, :retain => 1)
       inject_packet(:topic => 'topic1', :payload => 'payload2', :qos => 1)
-      topic,payload = client.get(nil, :omit_retained => true)
+      topic,payload = client.get(nil, nil, :omit_retained => true)
       expect(topic).to eq('topic1')
       expect(payload).to eq('payload2')
       expect(client.queue_empty?).to be_truthy
@@ -759,7 +759,7 @@ describe MQTT::Client do
         inject_packet(:topic => 'topic0', :payload => 'payload0', :retain => 1)
         inject_packet(:topic => 'topic1', :payload => 'payload1')
         payloads = []
-        client.get(nil, :omit_retained => true) do |topic,payload|
+        client.get(nil, nil, :omit_retained => true) do |topic,payload|
           payloads << payload
           break if payloads.size > 0
         end
