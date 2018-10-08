@@ -273,6 +273,8 @@ module MQTT
           Thread.current[:parent] = parent
           receive_packet while connected?
         end
+
+        @last_ping_response = Time.now
       end
 
       return unless block_given?
